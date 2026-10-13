@@ -84,7 +84,7 @@ export async function auditContributions(
 
   const text = await response.text();
 
-  let data: any;
+  let data: unknown;
 
   try {
     data = JSON.parse(text);
