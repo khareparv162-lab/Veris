@@ -24,7 +24,8 @@ export type RepositoryAudit = {
   evidence_note: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const apiUrl =
+  process.env.NEXT_PUBLIC_API_URL || "https://veris-api-s13b.onrender.com";
 
 export async function auditRepository(url: string): Promise<RepositoryAudit> {
   const response = await fetch(`${API_BASE}/api/v1/repositories/audit`, {
