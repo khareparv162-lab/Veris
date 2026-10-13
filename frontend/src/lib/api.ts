@@ -1,3 +1,6 @@
+type ApiErrorResponse = {
+  detail?: string | { msg?: string }[];
+};
 export type LanguageShare = {
   name: string;
   bytes: number;
@@ -82,26 +85,26 @@ export async function auditContributions(
     }
   );
 
-  const text = await response.text();
+ 
+const text = await response.text();
 
-  let data: unknown;
+let data: ApiErrorResponse;
 
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(
-      `The API returned HTML or invalid JSON (HTTP ${response.status}). Check the API URL: ${apiUrl}`
-    );
-  }
+try {
+  data = JSON.parse(text) as ApiErrorResponse;
+} catch {
+  throw new Error(
+    `The API returned HTML or invalid JSON (HTTP ${response.status}). Check the API URL: ${apiUrl}`
+  );
+}
 
-  if (!response.ok) {
-    throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : data.detail?.[0]?.msg ||
-            "Could not fetch contribution evidence."
-    );
-  }
-
+if (!response.ok) {
+  throw new Error(
+    typeof data.detail === "string"
+      ? data.detail
+      : data.detail?.[0]?.msg ||
+          "Could not fetch contribution evidence."
+  );
+}
   return data as ContributionAudit;
 }
