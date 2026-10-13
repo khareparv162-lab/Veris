@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: proof-of-skill-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proof_of_skill
+      POSTGRES_USER: proof_user
+      POSTGRES_PASSWORD: local_dev_password_change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - proof_of_skill_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proof_user -d proof_of_skill"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  proof_of_skill_pgdata:
