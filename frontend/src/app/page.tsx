@@ -39,6 +39,13 @@ export default function Home() {
     setLoading(true);
     setContributions(null);
     setContributionError("");
+    const handleSubmit = async (event: FormEvent) => {
+      event.preventDefault();
+    
+      const repositoryUrl = url.trim();
+    
+      const result = await auditRepository(repositoryUrl);
+    };
 
     try {
       const audit = await auditRepository(url.trim());
