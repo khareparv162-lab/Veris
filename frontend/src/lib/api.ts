@@ -24,11 +24,11 @@ export type RepositoryAudit = {
   evidence_note: string;
 };
 
-const apiUrl =
+const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://veris-api-s13b.onrender.com";
 
 export async function auditRepository(url: string): Promise<RepositoryAudit> {
-  const response = await fetch(`${API_BASE}/api/v1/repositories/audit`, {
+    const response = await fetch(`${API_BASE}/api/v1/repositories/audit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
