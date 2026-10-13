@@ -74,10 +74,10 @@ export default function Home() {
       <header className="border-b border-[#e5e9f0] bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/" className="flex items-center gap-3" aria-label="Proof of Skill home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#172033] text-sm font-bold text-white">P</span>
-            <span className="text-[15px] font-semibold tracking-[-0.03em]">proof<span className="text-[#315efb]">/</span>skill</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#172033] text-sm font-bold text-white">V</span>
+            <span className="text-[15px] font-semibold tracking-[-0.03em]">Veris<span className="text-[#315efb]">
           </Link>
-          <span className="rounded-full border border-[#e5e9f0] px-3 py-1.5 text-xs font-medium text-[#667085]">EARLY ACCESS · MVP</span>
+          <span className="rounded-full border border-[#e5e9f0] px-3 py-1.5 text-xs font-medium text-[#667085]">Veris - Evidence Over Claims</span>
         </div>
       </header>
 
