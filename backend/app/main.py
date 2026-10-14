@@ -3,11 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import settings
-from .github import fetch_contribution_audit, fetch_repository_audit
+from .github import (
+    fetch_contribution_audit,
+    fetch_repository_audit,
+    fetch_skill_evidence,
+)
 from .schemas import (
     ContributionAuditResponse,
     RepositoryAuditRequest,
     RepositoryAuditResponse,
+    SkillEvidenceResponse,
 )
 
 app = FastAPI(
@@ -50,3 +55,14 @@ async def audit_contributions(
     payload: RepositoryAuditRequest,
 ) -> ContributionAuditResponse:
     return await fetch_contribution_audit(str(payload.url))
+
+
+@app.post(
+    "/api/v1/repositories/skills",
+    response_model=SkillEvidenceResponse,
+)
+async def audit_repository_skills(
+    payload: RepositoryAuditRequest,
+) -> SkillEvidenceResponse:
+    return await fetch_skill_evidence(str(payload.url))
+
