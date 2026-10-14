@@ -1,3 +1,5 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 type ApiErrorResponse = {
   detail?: string | { msg?: string }[];
 };
@@ -90,7 +92,7 @@ export async function auditContributions(
   url: string
 ): Promise<ContributionAudit> {
   const response = await fetch(
-    `${apiUrl}/api/v1/repositories/contributions`,
+    `${API_BASE}/api/v1/repositories/contributions`,
     {
       method: "POST",
       headers: {
