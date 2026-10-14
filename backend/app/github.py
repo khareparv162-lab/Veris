@@ -10,8 +10,12 @@ import httpx
 from fastapi import HTTPException
 
 from .config import settings
-from .schemas import LanguageShare, RepositoryAuditResponse
-
+from .schemas import (
+    LanguageShare,
+    RepositoryAuditResponse,
+    SkillEvidence,
+    SkillEvidenceResponse,
+)
 GITHUB_API = "https://api.github.com"
 REPO_PATH_RE = re.compile(r"^/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/?$")
 
