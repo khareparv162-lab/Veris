@@ -48,6 +48,20 @@ class CommitEvidence(BaseModel):
     deletions: int | None
     changed_files: int | None
 
+class SkillEvidence(BaseModel):
+    skill: str
+    evidence_found: bool
+    confidence: str
+    evidence_summary: str
+    evidence_urls: list[str] = Field(default_factory=list)
+    limitations: str
+
+
+class SkillEvidenceResponse(BaseModel):
+    full_name: str
+    skills: list[SkillEvidence]
+    evidence_note: str
+
 
 class ContributionAuditResponse(BaseModel):
     full_name: str
