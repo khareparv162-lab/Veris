@@ -96,34 +96,7 @@ export default function Home() {
     ]);
   }
 
-    try {
-      const audit = await auditRepository(url.trim());
-      setResult(audit);
-
-      setContributionLoading(true);
-
-      try {
-        const contributionData = await auditContributions(url.trim());
-        setContributions(contributionData);
-      } catch (err) {
-        setContributionError(
-          err instanceof Error
-            ? err.message
-            : "Could not fetch contribution evidence."
-        );
-      } finally {
-        setContributionLoading(false);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not audit this repository."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+    
 
   return (
     <main className="min-h-screen">
