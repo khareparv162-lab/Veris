@@ -20,6 +20,123 @@ GITHUB_API = "https://api.github.com"
 REPO_PATH_RE = re.compile(r"^/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/?$")
 
 
+SKILL_FILE_RULES = {
+    "Python": [".py"],
+    "JavaScript": [".js", ".jsx", ".mjs"],
+    "TypeScript": [".ts", ".tsx"],
+    "Java": [".java"],
+    "C++": [".cpp", ".cc", ".hpp", ".h"],
+    "C": [".c"],
+    "HTML": [".html", ".htm"],
+    "CSS": [".css"],
+    "SQL": [".sql"],
+    "Jupyter Notebook": [".ipynb"],
+}
+
+
+async def fetch_skill_evidence(raw_url: str) -> SkillEvidenceResponse:
+    owner, repo = parse_github_repo_url(raw_url)
+
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "Veris-Skill-Evidence",
+    }
+
+    if settings.github_token:
+        headers["Authorization"] = f"Bearer {settings.github_token}"
+
+    async with httpx.AsyncClient(
+        headers=headers,
+        timeout=httpx.Timeout(15.0, connect=5.0),
+    ) as client:
+        repo_response = await client.get(
+            f"{GITHUB_API}/repos/{owner}/{repo}"
+        )
+
+        if repo_response.status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail="Repository not found or not publicly accessible.",
+            )
+
+        if repo_response.status_code == 403:
+            raise HTTPException(
+                status_code=403,
+                detail="GitHub API access was limited. Try again later.",
+            )
+
+        if repo_response.is_error:
+            raise HTTPException(
+                status_code=502,
+                detail="Could not retrieve repository information.",
+            )
+
+        repo_data = repo_response.json()
+        branch = repo_data["default_branch"]
+
+        tree_response = await client.get(
+            f"{GITHUB_API}/repos/{owner}/{repo}/git/trees/{branch}",
+            params={"recursive": "1"},
+        )
+
+        if tree_response.is_error:
+            raise HTTPException(
+                status_code=502,
+                detail="Could not retrieve repository file evidence.",
+            )
+
+        tree_data = tree_response.json()
+        tree = tree_data.get("tree", [])
+
+    files = [
+        item for item in tree
+        if item.get("type") == "blob"
+        and isinstance(item.get("path"), str)
+    ]
+
+    skills = []
+
+    for skill, extensions in SKILL_FILE_RULES.items():
+        matching_files = [
+            item for item in files
+            if any(item["path"].lower().endswith(ext) for ext in extensions)
+        ]
+
+        evidence_urls = [
+            f"https://github.com/{owner}/{repo}/blob/{branch}/{item['path']}"
+            for item in matching_files[:5]
+        ]
+
+        found = bool(matching_files)
+
+        skills.append(
+            SkillEvidence(
+                skill=skill,
+                evidence_found=found,
+                confidence="low" if found else "low",
+                evidence_summary=(
+                    f"Found {len(matching_files)} file(s) with relevant extensions."
+                    if found
+                    else "No matching files were found in the inspected repository tree."
+                ),
+                evidence_urls=evidence_urls,
+                limitations=(
+                    "File extensions indicate possible use of this technology, "
+                    "not code quality, individual authorship, or proficiency."
+                ),
+            )
+        )
+
+    return SkillEvidenceResponse(
+        full_name=repo_data["full_name"],
+        skills=skills,
+        evidence_note=(
+            "Skills are inferred from repository file extensions only. "
+            "This is preliminary evidence, not proof of proficiency."
+        ),
+    )
+
 def parse_github_repo_url(raw_url: str) -> tuple[str, str]:
     parsed = urlparse(raw_url)
     if parsed.scheme != "https" or parsed.hostname not in {"github.com", "www.github.com"}:
