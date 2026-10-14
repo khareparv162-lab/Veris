@@ -1,8 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "https://veris-api-s13b.onrender.com";
 
 type ApiErrorResponse = {
   detail?: string | { msg?: string }[];
 };
+
 export type LanguageShare = {
   name: string;
   bytes: number;
@@ -26,7 +29,6 @@ export type RepositoryAudit = {
   evidence_note: string;
 };
 
-
 export type SkillEvidence = {
   skill: string;
   evidence_found: boolean;
@@ -41,24 +43,6 @@ export type SkillEvidenceResponse = {
   skills: SkillEvidence[];
   evidence_note: string;
 };
-
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://veris-api-s13b.onrender.com";
-
-export async function auditRepository(url: string): Promise<RepositoryAudit> {
-    const response = await fetch(`${API_BASE}/api/v1/repositories/audit`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  });
-
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(body?.detail ?? `Request failed with HTTP ${response.status}`);
-  }
-  return body as RepositoryAudit;
-}
 
 export type RepositoryContributor = {
   username: string;
@@ -87,67 +71,58 @@ export type ContributionAudit = {
   evidence_note: string;
 };
 
+async function postJson<T>(path: string, url: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
 
-export async function auditContributions(
-  url: string
-): Promise<ContributionAudit> {
-  const response = await fetch(
-    `${API_BASE}/api/v1/repositories/contributions`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ url }),
-    }
-  );
+  const text = await response.text();
+  let data: unknown;
 
- 
-const text = await response.text();
-
-let data: ApiErrorResponse;
-
-try {
-  data = JSON.parse(text) as ApiErrorResponse;
-} catch {
-  throw new Error(
-    `The API returned HTML or invalid JSON (HTTP ${response.status}). Check the API URL: ${apiUrl}`
-  );
-}
-
-if (!response.ok) {
-  throw new Error(
-    typeof data.detail === "string"
-      ? data.detail
-      : data.detail?.[0]?.msg ||
-          "Could not fetch contribution evidence."
-  );
-}
-  return data as ContributionAudit;
-}
-
-
-export async function auditSkills(
-  url: string
-): Promise<SkillEvidenceResponse> {
-  const response = await fetch(
-    `${API_BASE}/api/v1/repositories/skills`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    }
-  );
-
-  const body = await response.json().catch(() => null);
-
-  if (!response.ok) {
+  try {
+    data = JSON.parse(text);
+  } catch {
     throw new Error(
-      typeof body?.detail === "string"
-        ? body.detail
-        : `Skill analysis failed with HTTP ${response.status}`
+      `The API returned invalid JSON (HTTP ${response.status}). Check that the backend is running and NEXT_PUBLIC_API_URL is correct.`
     );
   }
 
-  return body as SkillEvidenceResponse;
+  if (!response.ok) {
+    const errorData = data as ApiErrorResponse;
+    const detail = errorData.detail;
+
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail[0]?.msg || `Request failed with HTTP ${response.status}`
+          : `Request failed with HTTP ${response.status}`
+    );
+  }
+
+  return data as T;
+}
+
+export function auditRepository(url: string): Promise<RepositoryAudit> {
+  return postJson<RepositoryAudit>("/api/v1/repositories/audit", url);
+}
+
+export function auditContributions(
+  url: string
+): Promise<ContributionAudit> {
+  return postJson<ContributionAudit>(
+    "/api/v1/repositories/contributions",
+    url
+  );
+}
+
+export function auditSkills(
+  url: string
+): Promise<SkillEvidenceResponse> {
+  return postJson<SkillEvidenceResponse>(
+    "/api/v1/repositories/skills",
+    url
+  );
 }
