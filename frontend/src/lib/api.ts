@@ -24,6 +24,23 @@ export type RepositoryAudit = {
   evidence_note: string;
 };
 
+
+export type SkillEvidence = {
+  skill: string;
+  evidence_found: boolean;
+  confidence: string;
+  evidence_summary: string;
+  evidence_urls: string[];
+  limitations: string;
+};
+
+export type SkillEvidenceResponse = {
+  full_name: string;
+  skills: SkillEvidence[];
+  evidence_note: string;
+};
+
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://veris-api-s13b.onrender.com";
 
@@ -72,9 +89,6 @@ export type ContributionAudit = {
 export async function auditContributions(
   url: string
 ): Promise<ContributionAudit> {
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
   const response = await fetch(
     `${apiUrl}/api/v1/repositories/contributions`,
     {
@@ -108,4 +122,30 @@ if (!response.ok) {
   );
 }
   return data as ContributionAudit;
+}
+
+
+export async function auditSkills(
+  url: string
+): Promise<SkillEvidenceResponse> {
+  const response = await fetch(
+    `${API_BASE}/api/v1/repositories/skills`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    }
+  );
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      typeof body?.detail === "string"
+        ? body.detail
+        : `Skill analysis failed with HTTP ${response.status}`
+    );
+  }
+
+  return body as SkillEvidenceResponse;
 }
