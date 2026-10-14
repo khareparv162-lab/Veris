@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+
 import {
   auditRepository,
   auditContributions,
+  auditSkills,
   type RepositoryAudit,
   type ContributionAudit,
+  type SkillEvidenceResponse,
 } from "@/lib/api";
+
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
@@ -31,21 +35,66 @@ export default function Home() {
   const [contributionLoading, setContributionLoading] = useState(false);
 
   
-  
+  const [skillResults, setSkillResults] =
+  useState<SkillEvidenceResponse | null>(null);
+  const [skillError, setSkillError] = useState("");
+  const [skillLoading, setSkillLoading] = useState(false);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+  
+    const repositoryUrl = url.trim();
+  
     setError("");
     setResult(null);
-    setLoading(true);
-    setContributions(null);
     setContributionError("");
-    const handleSubmit = async (event: FormEvent) => {
-      event.preventDefault();
-    
-      const repositoryUrl = url.trim();
-    
-      const result = await auditRepository(repositoryUrl);
-    };
+    setContributions(null);
+    setSkillError("");
+    setSkillResults(null);
+  
+    setLoading(true);
+    setContributionLoading(true);
+    setSkillLoading(true);
+  
+    const repositoryTask = auditRepository(repositoryUrl)
+      .then(setResult)
+      .catch((err) => {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not audit this repository."
+        );
+      })
+      .finally(() => setLoading(false));
+  
+    const contributionTask = auditContributions(repositoryUrl)
+      .then(setContributions)
+      .catch((err) => {
+        setContributionError(
+          err instanceof Error
+            ? err.message
+            : "Could not fetch contribution evidence."
+        );
+      })
+      .finally(() => setContributionLoading(false));
+  
+    const skillTask = auditSkills(repositoryUrl)
+      .then(setSkillResults)
+      .catch((err) => {
+        setSkillError(
+          err instanceof Error
+            ? err.message
+            : "Could not analyze skill evidence."
+        );
+      })
+      .finally(() => setSkillLoading(false));
+  
+    await Promise.all([
+      repositoryTask,
+      contributionTask,
+      skillTask,
+    ]);
+  }
 
     try {
       const audit = await auditRepository(url.trim());
@@ -213,6 +262,90 @@ export default function Home() {
           </div>
         )}
         
+        {skillLoading && (
+          <p className="mt-5 max-w-3xl text-sm text-[#667085]" role="status">
+            Analyzing repository skill evidence…
+          </p>
+        )}
+        
+        {skillError && (
+          <p
+            className="mt-5 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+            role="alert"
+          >
+            Skill analysis could not be loaded: {skillError}
+          </p>
+        )}
+        
+        {skillResults && (
+          <section className="mt-8 max-w-3xl overflow-hidden rounded-2xl border border-[#e5e9f0] bg-white">
+            <div className="border-b border-[#e5e9f0] p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#667085]">
+                Evidence-based analysis
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+                Skill evidence
+              </h2>
+              <p className="mt-2 text-sm text-[#667085]">
+                Technologies detected in {skillResults.full_name}.
+                Detection indicates repository evidence, not verified proficiency.
+              </p>
+            </div>
+        
+            <div className="space-y-3 p-6">
+              {skillResults.skills
+                .filter((skill) => skill.evidence_found)
+                .map((skill) => (
+                  <article
+                    key={skill.skill}
+                    className="rounded-xl border border-[#e5e9f0] p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-semibold">{skill.skill}</h3>
+                      <span className="rounded-full bg-[#f0f4ff] px-3 py-1 text-xs font-medium text-[#315efb]">
+                        {skill.confidence} confidence
+                      </span>
+                    </div>
+        
+                    <p className="mt-2 text-sm leading-6 text-[#667085]">
+                      {skill.evidence_summary}
+                    </p>
+        
+                    {skill.evidence_urls.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {skill.evidence_urls.map((evidenceUrl) => (
+                          <a
+                            key={evidenceUrl}
+                            href={evidenceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="break-all text-sm font-medium text-[#315efb] hover:underline"
+                          >
+                            View evidence ↗
+                          </a>
+                        ))}
+                      </div>
+                    )}
+        
+                    <p className="mt-3 text-xs leading-5 text-[#667085]">
+                      Limitation: {skill.limitations}
+                    </p>
+                  </article>
+                ))}
+        
+              {!skillResults.skills.some((skill) => skill.evidence_found) && (
+                <p className="rounded-lg bg-[#f7f8fb] p-4 text-sm text-[#667085]">
+                  No matching technology files were found in the inspected repository.
+                </p>
+              )}
+            </div>
+        
+            <p className="border-t border-[#e5e9f0] bg-[#f7f8fb] p-4 text-xs leading-5 text-[#667085]">
+              {skillResults.evidence_note}
+            </p>
+          </section>
+        )}
+
         {contributionLoading && (
           <p className="mt-5 max-w-3xl text-sm text-[#667085]" role="status">
             Fetching contributor and commit evidence…
